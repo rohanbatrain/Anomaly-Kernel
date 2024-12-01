@@ -40,6 +40,22 @@ config CFQ_GROUP_IOSCHED
 	---help---
 	  Enable group IO scheduling in CFQ.
 
+config IOSCHED_ANXIETY
+	tristate "Anxiety I/O scheduler"
+	default n
+	---help---
+	  The Anxiety I/O scheduler prioritizes latency over everything
+	  else. When a request comes in, it will use a lighweight
+	  selection algorithm to swiftly process the current pending task.
+	  
+config MQ_IOSCHED_KYBER
+	tristate "Kyber I/O scheduler"
+	default n
+	---help---
+	  The Kyber I/O scheduler is a low-overhead scheduler suitable for
+	  multiqueue and other fast devices. Given target latencies for reads and
+	  synchronous writes, it will self-tune queue depths to achieve that	  
+
 choice
 
 	prompt "Default I/O scheduler"
@@ -53,6 +69,12 @@ choice
 
 	config DEFAULT_CFQ
 		bool "CFQ" if IOSCHED_CFQ=y
+
+	config DEFAULT_ANXIETY
+		bool "Anxiety" if IOSCHED_ANXIETY=y
+		
+	config DEFAULT_KYBER
+		bool "kyber" if IOSCHED_KYBER=y	
 
 	config DEFAULT_NOOP
 		bool "No-op"
