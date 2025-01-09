@@ -120,18 +120,15 @@ static const u32 crc_reg_val[] = {
 };
 
 static struct alpha_pll_config npu_cc_pll0_config = {
-	.l = 0x1F,
-	.cal_l = 0x44,
-	.alpha = 0x4000,
-	.config_ctl_val = 0x20485699,
-	.config_ctl_hi_val = 0x00002261,
-	.config_ctl_hi1_val = 0x329A699C,
-	.user_ctl_val = 0x00000000,
-	.user_ctl_hi_val = 0x00000805,
-	.user_ctl_hi1_val = 0x00000000,
-	.custom_reg_offset = crc_reg_offset,
-	.custom_reg_val = crc_reg_val,
-	.num_custom_reg = ARRAY_SIZE(crc_reg_offset),
+    .l = 0x4E,
+    .cal_l = 0x44,
+    .alpha = 0x2000,
+    .config_ctl_val = 0x20485699,
+    .config_ctl_hi_val = 0x00002261,
+    .config_ctl_hi1_val = 0x329A699C,
+    .user_ctl_val = 0x00000000,
+    .user_ctl_hi_val = 0x00000805,
+    .user_ctl_hi1_val = 0x00000000,
 };
 
 static struct clk_alpha_pll npu_cc_pll0 = {
@@ -349,11 +346,6 @@ static struct clk_rcg2 npu_cc_cal_hm0_clk_src = {
 				[VDD_NOMINAL] = 850000000,
 				[VDD_HIGH] = 1000000000},
 		},
-		/*
-		 * npu_cc_cal_hm0_clk_src and npu_cc_cal_hm1_clk_src must be
-		 * configured in lockstep.  They are sourced from the same PLL
-		 * and it is slewed.
-		 */
 		.dependent_hw = &npu_cc_cal_hm1_clk_src.clkr.hw,
 	},
 };
@@ -394,14 +386,14 @@ static struct clk_rcg2 npu_cc_core_clk_src = {
 
 static const struct freq_tbl ftbl_npu_cc_lmh_clk_src[] = {
 	F(100000000, P_GCC_NPU_GPLL0_DIV_CLK, 3, 0, 0),
-	F(200000000, P_GCC_NPU_GPLL0_CLK, 3, 0, 0),
-	F(214285714, P_NPU_CC_PLL1_OUT_EVEN, 7, 0, 0),
-	F(300000000, P_NPU_CC_PLL1_OUT_EVEN, 5, 0, 0),
+	F(200000000, P_GCC_NPU_GPLL0_CLK, 2, 0, 0),
+	F(400000000, P_NPU_CC_PLL1_OUT_EVEN, 4, 0, 0),
+	F(500000000, P_NPU_CC_PLL1_OUT_EVEN, 3, 0, 0),
 	{ }
 };
 
 static struct clk_rcg2 npu_cc_lmh_clk_src = {
-	.cmd_rcgr = 0x1060,
+	.cmd_rcgr = 0x1050,
 	.mnd_width = 0,
 	.hid_width = 5,
 	.parent_map = npu_cc_parent_map_0,
@@ -419,8 +411,8 @@ static struct clk_rcg2 npu_cc_lmh_clk_src = {
 		.rate_max = (unsigned long[VDD_NUM]) {
 			[VDD_LOWER] = 100000000,
 			[VDD_LOW] = 200000000,
-			[VDD_LOW_L1] = 214285714,
-			[VDD_NOMINAL] = 300000000},
+			[VDD_LOW_L1] = 400000000,
+			[VDD_NOMINAL] = 500000000},
 	},
 };
 
