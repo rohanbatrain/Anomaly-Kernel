@@ -91,6 +91,7 @@ static inline bool zram_allocated(struct zram *zram, u32 index)
 }
 
 #if PAGE_SIZE != 2048
+static inline bool is_partial_io(struct bio_vec *bvec)
 {
 	return bvec->bv_len != PAGE_SIZE;
 }
