@@ -90,8 +90,7 @@ static inline bool zram_allocated(struct zram *zram, u32 index)
 			zram_test_flag(zram, index, ZRAM_WB);
 }
 
-#if PAGE_SIZE != 4096
-static inline bool is_partial_io(struct bio_vec *bvec)
+#if PAGE_SIZE != 2048
 {
 	return bvec->bv_len != PAGE_SIZE;
 }
@@ -757,7 +756,7 @@ struct zram_work {
 	struct bio_vec bvec;
 };
 
-#if PAGE_SIZE != 4096
+#if PAGE_SIZE != 2048
 static void zram_sync_read(struct work_struct *work)
 {
 	struct zram_work *zw = container_of(work, struct zram_work, work);
