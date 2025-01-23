@@ -29,18 +29,19 @@
 /* Include the master list of GPU cores that are supported */
 #include "adreno-gpulist.h"
 
-static void adreno_input_work(struct work_struct *work);
-static unsigned int counter_delta(struct kgsl_device *device,
-	unsigned int reg, unsigned int *counter);
-
-static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
-	.bus = {
-		.max = 350,
-		.floating = true,
-	},
-	.device_id = KGSL_DEVICE_3D0,
+/* Define GPU frequency values (in MHz) */
+static const unsigned long adreno_supported_freqs[] = {
+    200, 350, 500, 700, 1000  // Frequency values for the GPU
 };
 
+/* Define Adreno power scaling data */
+static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
+    .bus = {
+        .max = 1000,       // Default maximum bus frequency
+        .floating = false, // Bus frequency floating behavior
+    },
+    .device_id = KGSL_DEVICE_3D0,  // Device ID for the GPU
+};
 static const struct kgsl_functable adreno_functable;
 
 static struct adreno_device device_3d0 = {
