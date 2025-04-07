@@ -56,7 +56,7 @@ static bool is_emulator_running(void)
 
     rcu_read_lock();
     for_each_process(task) {
-        if (task->comm) {
+        if (task->comm[0] != '\0') {
             int i;
             for (i = 0; i < ARRAY_SIZE(emulator_names); i++) {
                 if (strnstr(task->comm, emulator_names[i], TASK_COMM_LEN)) {
