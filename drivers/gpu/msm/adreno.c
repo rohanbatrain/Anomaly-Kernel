@@ -42,6 +42,12 @@ static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
     },
     .device_id = KGSL_DEVICE_3D0,  // Device ID for the GPU
 };
+
+/* Function prototypes */
+static void adreno_input_work(struct work_struct *work);
+static unsigned int counter_delta(struct kgsl_device *device,
+                                  unsigned int reg, unsigned int *counter);
+
 static const struct kgsl_functable adreno_functable;
 
 static struct adreno_device device_3d0 = {
@@ -73,6 +79,7 @@ static struct adreno_device device_3d0 = {
 		.usesgmem = 1,
 	},
 };
+
 
 /* Ptr to array for the current set of fault detect registers */
 unsigned int *adreno_ft_regs;
