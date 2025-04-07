@@ -3,9 +3,9 @@
  *
  *  Copyright (C) 2025 The_Anomalist
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  */
 
 #include <linux/errno.h>
@@ -13,38 +13,64 @@
 #include <linux/devfreq.h>
 #include <linux/math64.h>
 #include <linux/ktime.h>
-#include <linux/thermal.h>  /* For temperature-based scaling */
+#include <linux/thermal.h>
 #include <linux/sched/clock.h>
-#include <dt-bindings/regulator/qcom,rpmh-regulator-levels.h>
-#include <dt-bindings/regulator/qcom,rpmh-regulator-levels.h>
-#include <dt-bindings/soc/qcom,rpmh-rsc.h>
-#include <dt-bindings/clock/qcom,gpucc-kona.h>
+#include <linux/sched/signal.h>
+#include <linux/pid.h>
+#include <linux/sched.h>
+#include <linux/string.h>
 #include "governor.h"
 
 /* Echelon: Gaming-optimized DevFreq Governor for Adreno 650 */
-#define ECHELON_UPTHRESHOLD       (75)  /* 75% load for scaling up */
-#define ECHELON_DOWNTHRESHOLD     (30)  /* 30% load for scaling down */
-#define ECHELON_DOWNSCALE_FACTOR  (50)  /* Frequency reduction factor on idle */
-#define ECHELON_SCALE_TIMEOUT     (100) /* Timeout for scaling in ms */
-#define THERMAL_ZONE_NAME         "thermal_zone0" /* Assuming thermal zone0 */
+#define ECHELON_UPTHRESHOLD       (70)
+#define ECHELON_DOWNTHRESHOLD     (30)
+#define ECHELON_DOWNSCALE_FACTOR  (50)
+#define ECHELON_SCALE_TIMEOUT     (100)
+#define THERMAL_ZONE_NAME         "thermal_zone0"
+#define EMULATION_BOOST_FREQ      944000000 /* Max OPP */
+
+static const char *emulator_names[] = {
+    "yuzu", "aethersx2", "dolphin", "ppsspp", "citra"
+};
 
 /* OPP Table */
 static const unsigned long gpu_opp_freqs[] = {
-    944000000, 835000000, 720000000, 640000000,
+    891000000, 835000000, 720000000, 640000000,
     525000000, 490000000, 400000000, 305000000,
     150000000
 };
 
-/* Data structure to hold Echelon governor settings */
 struct devfreq_echelon_data {
     unsigned int upthreshold;
     unsigned int downthreshold;
     unsigned int downscale_factor;
     unsigned int max_scale_step;
-    ktime_t last_update_time; /* Time of last frequency update */
+    ktime_t last_update_time;
 };
 
-/* Helper function to find the closest OPP */
+/* Detects if an emulator process is running */
+static bool is_emulator_running(void)
+{
+    struct task_struct *task;
+    bool found = false;
+
+    rcu_read_lock();
+    for_each_process(task) {
+        if (task->comm) {
+            int i;
+            for (i = 0; i < ARRAY_SIZE(emulator_names); i++) {
+                if (strnstr(task->comm, emulator_names[i], TASK_COMM_LEN)) {
+                    found = true;
+                    goto done;
+                }
+            }
+        }
+    }
+done:
+    rcu_read_unlock();
+    return found;
+}
+
 static unsigned long find_closest_opp(unsigned long target_freq)
 {
     unsigned long closest = gpu_opp_freqs[0];
@@ -58,14 +84,13 @@ static unsigned long find_closest_opp(unsigned long target_freq)
     return closest;
 }
 
-/* Frequency scaling function */
 static int devfreq_echelon_func(struct devfreq *df, unsigned long *freq)
 {
     int err;
     struct devfreq_dev_status *stat;
     struct devfreq_echelon_data *data = df->data;
-    unsigned long max = (df->max_freq) ? df->max_freq : gpu_opp_freqs[0];
-    unsigned long min = (df->min_freq) ? df->min_freq : gpu_opp_freqs[ARRAY_SIZE(gpu_opp_freqs) - 1];
+    unsigned long max = df->max_freq ? df->max_freq : gpu_opp_freqs[0];
+    unsigned long min = df->min_freq ? df->min_freq : gpu_opp_freqs[ARRAY_SIZE(gpu_opp_freqs) - 1];
 
     unsigned int upthreshold = ECHELON_UPTHRESHOLD;
     unsigned int downthreshold = ECHELON_DOWNTHRESHOLD;
@@ -94,7 +119,9 @@ static int devfreq_echelon_func(struct devfreq *df, unsigned long *freq)
         return 0;
     }
 
-    if (stat->busy_time * 100 > stat->total_time * upthreshold) {
+    if (is_emulator_running()) {
+        predicted_frequency = EMULATION_BOOST_FREQ;
+    } else if (stat->busy_time * 100 > stat->total_time * upthreshold) {
         predicted_frequency = max;
     } else if (stat->busy_time * 100 < stat->total_time * downthreshold) {
         predicted_frequency = min;
@@ -102,9 +129,8 @@ static int devfreq_echelon_func(struct devfreq *df, unsigned long *freq)
 
     predicted_frequency = find_closest_opp(predicted_frequency);
 
-    if (predicted_frequency != *freq) {
+    if (predicted_frequency != *freq)
         *freq = predicted_frequency;
-    }
 
     if (*freq < min)
         *freq = min;
@@ -123,7 +149,6 @@ static int devfreq_echelon_func(struct devfreq *df, unsigned long *freq)
     return 0;
 }
 
-/* Event handler for Echelon governor */
 static int devfreq_echelon_handler(struct devfreq *devfreq,
                                    unsigned int event, void *data)
 {
@@ -170,13 +195,13 @@ subsys_initcall(devfreq_echelon_init);
 static void __exit devfreq_echelon_exit(void)
 {
     int ret;
-
     ret = devfreq_remove_governor(&devfreq_echelon);
     if (ret)
-        pr_err("%s: failed remove governor %d\n", __func__, ret);
+        pr_err("%s: failed to remove governor %d\n", __func__, ret);
 }
 module_exit(devfreq_echelon_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("The_Anomalist");
-MODULE_DESCRIPTION("Echelon: A high-performance devfreq governor for Adreno 650 GPU, optimized for gaming.");
+MODULE_DESCRIPTION("Echelon: A high-performance devfreq governor for Adreno 650 GPU, optimized for gaming and emulation.");
+
