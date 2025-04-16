@@ -100,6 +100,16 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  Be aware that not all cpufreq drivers support the conservative
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
+	  
+config CPU_FREQ_DEFAULT_GOV_SCHED_ECHELON
+	bool "sched_echelon"
+	select CPU_FREQ_GOV_SCHED_ECHELON
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'sched_echelon' CPUFreq governor by default. If unsure,
+	  refer to the help section of that governor. The fallback governor
+	  will be 'performance'.
+	  
 
 config CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	bool "schedutil"
@@ -219,6 +229,20 @@ config CPU_FREQ_GOV_SCHEDUTIL
 	  both cases.
 
 	  If in doubt, say N.
+	  
+config CPU_FREQ_GOV_SCHED_ECHELON
+	tristate "sched_echelon CPU frequency governor"
+	depends on CPU_FREQ && CPU_FREQ_GOV_COMMON
+	default n
+	help
+	  A scheduler-driven CPUFreq governor tuned for emulation and gaming workloads.
+	  Features include:
+	    - Fast frequency ramp-up for emulators
+	    - Thermal throttling integration
+	    - Kthread-based fallback for slow path
+	    - Supports fast frequency switching
+
+	  If in doubt, say N.	  
 
 comment "CPU frequency scaling drivers"
 
